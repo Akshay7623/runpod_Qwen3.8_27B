@@ -63,7 +63,13 @@ Environment variables, all optional:
 | `VLLM_STARTUP_TIMEOUT` | `1200` | Seconds to wait for vLLM to load before the worker gives up. |
 | `REQUEST_TIMEOUT` | `3600` | Seconds a single request to vLLM may take. |
 
-RunPod's GitHub builds are limited to an 80 GB image, 160 minutes in total, and 30 minutes for the `docker build` step. This image is about 40 GB to download (9 GB base image and 31 GB of weights). Download speeds vary a lot between builds, so if one times out, start it again.
+RunPod's GitHub builds are limited to an 80 GB image, 160 minutes in total, and 30 minutes for the `docker build` step. This image is about 40 GB to download (9 GB base image and 31 GB of weights). The weights download in Hugging Face's high-performance mode to save time, but speeds still vary a lot between builds, so if one times out, start it again.
+
+### When a build fails
+
+Pushing to `main` does not start a build. Publishing a new GitHub release does, and it is also how to retry a failed build.
+
+If the log stops at `[internal] booting buildkit`, the build failed on RunPod's build machine before it read the Dockerfile, so no change to this repo fixes it. One example is `OCI runtime create failed ... unsafe procfs detected ... invalid cross-device link`. Publish a new release to try again on another machine. If the same error comes back, report it to RunPod support with the build log.
 
 ## Requests
 

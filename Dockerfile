@@ -27,13 +27,17 @@ ARG MODEL_REPO=chimingw/Qwen3.8-27B-Uncensored-OrcaRouter-GGUF
 ARG MODEL_REVISION=58ebd123013160600229eda180b5b17f3fb7af9d
 ENV MODEL_PATH=/models/qwen3.8-27b-uncensored-fp8
 
-# Download the model (30.9 GB) and check it.
+# Download the model (30.9 GB) and check it. The repo is on Hugging Face's Xet
+# storage, and HF_XET_HIGH_PERFORMANCE lets the download use every core and all
+# the bandwidth, since RunPod stops `docker build` after 30 minutes. HF_HOME is
+# a temporary folder, so no Hugging Face cache is left in the image.
 COPY src/sha256sums.txt /tmp/sha256sums.txt
-RUN python3 -c "import sys; from huggingface_hub import snapshot_download; snapshot_download(sys.argv[1], revision=sys.argv[2], allow_patterns=['FP8/*'], local_dir='/tmp/model')" \
+RUN HF_HOME=/tmp/hf-home HF_XET_HIGH_PERFORMANCE=1 \
+    python3 -c "import sys; from huggingface_hub import snapshot_download; snapshot_download(sys.argv[1], revision=sys.argv[2], allow_patterns=['FP8/*'], local_dir='/tmp/model')" \
         "${MODEL_REPO}" "${MODEL_REVISION}" \
     && mkdir -p "$(dirname "${MODEL_PATH}")" \
     && mv /tmp/model/FP8 "${MODEL_PATH}" \
-    && rm -rf /tmp/model \
+    && rm -rf /tmp/model /tmp/hf-home \
     && cd "${MODEL_PATH}" \
     && sha256sum -c /tmp/sha256sums.txt \
     && rm /tmp/sha256sums.txt
