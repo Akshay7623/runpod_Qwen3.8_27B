@@ -36,7 +36,7 @@ If the copy is ever deleted, rebuilds fail until `MODEL_REPO` and `MODEL_REVISIO
 
 GitHub Actions builds the image ([build-image.yml](.github/workflows/build-image.yml)) and pushes it to GHCR as `ghcr.io/akshay7623/runpod_qwen3.8_27b`; nothing is built locally. A build runs on every push to `main` that changes the Dockerfile, `handler.py`, `test_input.json` or `src/`, and can also be started by hand from the repo's **Actions** tab. Each image is tagged `latest` and `sha-` plus the first 7 characters of the commit, and the run's summary shows the tag.
 
-The package is private, so RunPod needs a token to pull it:
+The first push made the package public, matching this public repo, so anyone can pull the image. To make it private, open the package on GitHub (**Packages → runpod_qwen3.8_27b → Package settings → Change visibility**). A private package needs a token for RunPod to pull it:
 
 1. On GitHub, create a classic personal access token with only the `read:packages` scope (**Settings → Developer settings → Personal access tokens → Tokens (classic)**).
 2. In the RunPod console, under **Settings → Container Registry Auth**, add a credential with username `Akshay7623` and the token as the password.
