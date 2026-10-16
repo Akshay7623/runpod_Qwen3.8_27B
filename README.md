@@ -38,7 +38,7 @@ RunPod builds the image from this repo; nothing is built locally.
 
 1. In the RunPod console, go to **Serverless → New Endpoint → Import Git Repository** and pick this repo, branch `main`, Dockerfile path `Dockerfile`.
 2. Set the endpoint options below.
-3. Deploy. To rebuild after a change, publish a new GitHub release.
+3. Deploy. After that, every push to `main` starts a new build.
 
 | Setting | Value | Why |
 | --- | --- | --- |
@@ -67,9 +67,9 @@ RunPod's GitHub builds are limited to an 80 GB image, 160 minutes in total, and 
 
 ### When a build fails
 
-Pushing to `main` does not start a build. Publishing a new GitHub release does, and it is also how to retry a failed build.
+Every push to `main` starts a new build, so pushing a commit is also how to retry a failed one. RunPod's docs say a new GitHub release is needed, but on this endpoint a push was enough: the build started 14 seconds after the push.
 
-If the log stops at `[internal] booting buildkit`, the build failed on RunPod's build machine before it read the Dockerfile, so no change to this repo fixes it. One example is `OCI runtime create failed ... unsafe procfs detected ... invalid cross-device link`. Publish a new release to try again on another machine. If the same error comes back, report it to RunPod support with the build log.
+If the log stops at `[internal] booting buildkit`, the build failed on RunPod's build machine before it read the Dockerfile, so no change to this repo fixes it. One example is `OCI runtime create failed ... unsafe procfs detected ... invalid cross-device link`. Push a commit to try again. If the same error comes back, report it to RunPod support with the build log. On 2026-10-16 it failed this way on two builds in a row.
 
 ## Requests
 
