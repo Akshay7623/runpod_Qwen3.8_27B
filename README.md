@@ -34,11 +34,16 @@ If the copy is ever deleted, rebuilds fail until `MODEL_REPO` and `MODEL_REVISIO
 
 ## Deploy
 
-RunPod builds the image from this repo; nothing is built locally.
+GitHub Actions builds the image ([build-image.yml](.github/workflows/build-image.yml)) and pushes it to GHCR as `ghcr.io/akshay7623/runpod_qwen3.8_27b`; nothing is built locally. A build runs on every push to `main` that changes the Dockerfile, `handler.py`, `test_input.json` or `src/`, and can also be started by hand from the repo's **Actions** tab. Each image is tagged `latest` and `sha-` plus the first 7 characters of the commit, and the run's summary shows the tag.
 
-1. In the RunPod console, go to **Serverless → New Endpoint → Import Git Repository** and pick this repo, branch `main`, Dockerfile path `Dockerfile`.
-2. Set the endpoint options below.
-3. Deploy. After that, every push to `main` starts a new build.
+The package is private, so RunPod needs a token to pull it:
+
+1. On GitHub, create a classic personal access token with only the `read:packages` scope (**Settings → Developer settings → Personal access tokens → Tokens (classic)**).
+2. In the RunPod console, under **Settings → Container Registry Auth**, add a credential with username `Akshay7623` and the token as the password.
+3. Go to **Serverless → New Endpoint**, choose a Docker image, enter `ghcr.io/akshay7623/runpod_qwen3.8_27b:sha-<commit>`, and pick that credential.
+4. Set the endpoint options below, then deploy.
+
+To update the endpoint, change its image to the new `sha-` tag. Use those tags rather than `latest`, so the endpoint only changes when you change the tag, and workers do not keep running an older `latest` they have cached.
 
 | Setting | Value | Why |
 | --- | --- | --- |
@@ -63,13 +68,17 @@ Environment variables, all optional:
 | `VLLM_STARTUP_TIMEOUT` | `1200` | Seconds to wait for vLLM to load before the worker gives up. |
 | `REQUEST_TIMEOUT` | `3600` | Seconds a single request to vLLM may take. |
 
-RunPod's GitHub builds are limited to an 80 GB image, 160 minutes in total, and 30 minutes for the `docker build` step. This image is about 40 GB to download (9 GB base image and 31 GB of weights). The weights download in Hugging Face's high-performance mode to save time, but speeds still vary a lot between builds, so if one times out, start it again.
+### The GitHub Actions build
 
-### When a build fails
+The image is about 40 GB to download (9 GB base image and 31 GB of weights) and 55 GB unpacked, more than a standard GitHub runner has free. The workflow first deletes the runner's preinstalled SDKs, then joins the free space on its two disks into one volume for Docker.
 
-Every push to `main` starts a new build, so pushing a commit is also how to retry a failed one. RunPod's docs say a new GitHub release is needed, but on this endpoint a push was enough: the build started 14 seconds after the push.
+GHCR rejects layers over 10 GB, so the Dockerfile downloads each of the seven weight files in its own `RUN` step ([src/download.sh](src/download.sh)), which keeps every layer under 5 GB. The downloads use Hugging Face's high-performance mode.
 
-If the log stops at `[internal] booting buildkit`, the build failed on RunPod's build machine before it read the Dockerfile, so no change to this repo fixes it. One example is `OCI runtime create failed ... unsafe procfs detected ... invalid cross-device link`. Push a commit to try again. If the same error comes back, report it to RunPod support with the build log. On 2026-10-16 it failed this way on two builds in a row.
+### RunPod's GitHub build
+
+The same Dockerfile also builds with RunPod's own GitHub integration (**Serverless → New Endpoint → Import Git Repository**, branch `main`, Dockerfile path `Dockerfile`). There, every push to `main` starts a build. RunPod's docs say a new GitHub release is needed, but a push was enough: the build started 14 seconds after it. Those builds are limited to an 80 GB image, 160 minutes in total, and 30 minutes for the `docker build` step.
+
+On 2026-10-16 that route failed three times in a row on RunPod's side, which is why the GitHub Actions build exists. The log stopped at `[internal] booting buildkit` with `OCI runtime create failed ... unsafe procfs detected ... invalid cross-device link`, before RunPod had read the Dockerfile, so no change to this repo could fix it.
 
 ## Requests
 
